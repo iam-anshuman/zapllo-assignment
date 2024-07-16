@@ -16,11 +16,14 @@ import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select"
-  
+import axios from "axios";  
+
 
 
 const formSchema = z.object({
@@ -28,12 +31,12 @@ const formSchema = z.object({
     phone: z.string().min(10, { message: "Invalid phone number" }),
     firstName: z.string().min(3, { message: "Invalid First name" }),
     lastName: z.string().min(3, { message: "Invalid Last name" }),
-    comapny: z.string().min(5, { message: "Invalid job title" }),
-    priorityStatus: z.string().min(3, { message: "Invalid priority status" }),
+    company: z.string().min(5, { message: "Invalid job title" }),
+    priorityStatus: z.enum(['High', 'Medium', 'Low'], { message: "Invalid priority status" }),
 })
 
 
-function AddEmployeeForm() {
+function AddEmployeeForm({editMode,setEditMode}: {editMode: boolean,setEditMode:(editMode:boolean)=>void}) {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -42,19 +45,28 @@ function AddEmployeeForm() {
             phone: "",
             firstName: "",
             lastName: "",
-            comapny: "",
-            priorityStatus: "",
+            company: "",
+            priorityStatus: "Low",
         },
       })
 
-      function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
+      async function onSubmit(values: z.infer<typeof formSchema>) {
+        try {
+          const res = await axios.post("/api/employee", values).then((res) => {
+            if(res.status === 201){
+              setEditMode(false);
+              window.location.reload();
+            }
+          });
+        } catch (error) {
+          console.log(error);
+        }
       }
 
 
   return (
     <>
-        <Card className="hidden w-1/2 bg-slate-100 text-black top-1/4 left-1/4 absolute z-50 px-4 py-2">
+        <Card className={`${editMode?"block":"hidden"} w-1/2 bg-slate-100 text-black top-10 left-1/4 absolute z-50 px-4 py-2`}>
             <CardTitle className="text-center">Fill up the details given below</CardTitle>
             <CardContent>
             <Form {...form}>
@@ -131,14 +143,17 @@ function AddEmployeeForm() {
                         <FormItem>
                           <FormLabel>Priority Status</FormLabel>
                           <FormControl>
-                            <Select {...field}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="text-black">
-                                <SelectValue className="text-black">Select Priority Status</SelectValue>
+                                <SelectValue className="text-black">{field.value}</SelectValue>
                               </SelectTrigger>
                               <SelectContent className="bg-white text-black">
-                                <SelectItem value="High">High</SelectItem>
-                                <SelectItem value="Medium">Medium</SelectItem>
-                                <SelectItem value="Low">Low</SelectItem>
+                                <SelectGroup>
+                                  <SelectLabel>Priority Status</SelectLabel>
+                                  <SelectItem value="High">High</SelectItem>
+                                  <SelectItem value="Mid">Mid</SelectItem>
+                                  <SelectItem value="Low">Low</SelectItem>
+                                </SelectGroup>
                               </SelectContent>
                             </Select>
                           </FormControl>
@@ -146,7 +161,8 @@ function AddEmployeeForm() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit">Save Changes</Button>
+                    <Button className="bg-black text-white hover:bg-slate-700 hover:text-white mr-4" type="submit">Save Changes</Button>
+                    <Button variant={"destructive"} onClick={()=>setEditMode(false)} type="submit">Close Form</Button>
                   </form>
                 </Form>
             </CardContent>
